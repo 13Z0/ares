@@ -122,6 +122,7 @@ auto Disc::disconnect() -> void {
   fifo.parameter.flush();
   fifo.response.flush();
   fifo.data.flush();
+  io.sectorBufferLoaded = 0;
   fifo.deferred = {};
 
   irq.ready.flag = 0;
@@ -239,7 +240,7 @@ auto Disc::nextEvent() const -> u32 {
   if(fifo.deferred.counter > 0) schedule(fifo.deferred.counter);
   if(command.transfer.started && command.transfer.counter > 0) schedule(command.transfer.counter);
   if(command.secondResponse.pending && command.secondResponse.counter > 0) schedule(command.secondResponse.counter);
-  if(ssr.reading || ssr.playingCDDA || drive.seeking || drive.seekDelay) {
+  if(ssr.reading || ssr.playingCDDA || drive.seeking || drive.seekDelay || drive.headerLag) {
     schedule((451584 >> drive.mode.speed) - counter.sector);
   }
   if(ssr.playingCDDA) schedule(768 - counter.cdda);
@@ -283,6 +284,7 @@ auto Disc::power(bool reset) -> void {
   fifo.parameter.flush();
   fifo.response.flush();
   fifo.data.flush();
+  io.sectorBufferLoaded = 0;
   fifo.deferred = {};
   psr = {};
   ssr = {};

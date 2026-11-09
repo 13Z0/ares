@@ -26,6 +26,12 @@ auto Disc::Drive::updateSubQ() -> void {
   for(int i = 0; i < 10; i++) sector.subq[i] = qbuf[i];
 }
 
+auto Disc::Drive::updateHeader(s32 target) -> void {
+  target = max(target, -150);
+  self.fd->seek(2448ull * (CD::LeadInSectors + CD::LBAtoABA(target)));
+  self.fd->read({sector.data, 2448});
+}
+
 auto Disc::Drive::clockSector() -> void {
   if(!likely(self.fd)) return;
   if(seeking || self.ssr.reading) self.ssr.motorOn = 1;
@@ -38,6 +44,7 @@ auto Disc::Drive::clockSector() -> void {
 
   if(seeking) {
     headerValid = 0;
+    headerLag = 0;
     if(--seeking) {
       //aim to arrive a little early, this can be as much as 1-50 sectors on hardware, we pick a happy middle
       auto distance = lba.request - lba.current - 25;
@@ -74,7 +81,11 @@ auto Disc::Drive::clockSector() -> void {
       const bool ok = (seekType == SeekType::SeekP) ? !beyondDisc : (!beyondDisc && inDataTrack);
 
       if(ok) {
-        if(seekType == SeekType::SeekL && inDataTrack) headerValid = 1;
+        if(seekType == SeekType::SeekL && inDataTrack) {
+          headerLag = pendingOperation == PendingOperation::None ? (self.counter.sector >> 4 ^ lba.request) & 3 : 0;
+          updateHeader(lba.current - headerLag);
+          headerValid = 1;
+        }
 
         //correct for imprecise seek
         if(pendingOperation == PendingOperation::Play) {
@@ -130,6 +141,7 @@ auto Disc::Drive::clockSector() -> void {
   }
 
   if(self.ssr.reading) {
+    headerLag = 0;
     self.debugger.read(lba.current);
     self.fd->seek(2448ull * (CD::LeadInSectors + CD::LBAtoABA(lba.current++)));
     self.fd->read({sector.data, 2448});
@@ -187,6 +199,7 @@ auto Disc::Drive::clockSector() -> void {
     //any remaining FIFO data is lost if a new sector is clocked
     //before all data from the previous sector was read by the CPU
     self.fifo.data.flush();
+    self.io.sectorBufferLoaded = 0;
 
     if(mode.sectorSize == 0) {
       for(u32 offset : range(2048)) {
@@ -201,5 +214,10 @@ auto Disc::Drive::clockSector() -> void {
     }
 
     self.queueResponse(ResponseType::Ready, {self.status()});
+  }
+  else if(headerLag) {
+    //the head settles onto the target: close the lag by one sector per sector period
+    headerLag--;
+    updateHeader(lba.current - headerLag);
   }
 }

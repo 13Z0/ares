@@ -15,6 +15,7 @@ auto Disc::serialize(serializer& s) -> void {
   s(drive.mode.xaADPCM);
   s(drive.mode.speed);
   s(drive.headerValid);
+  s(drive.headerLag);
   s(drive.seeking);
   s(drive.seekDelay);
   s(drive.seekRetries);
@@ -85,6 +86,7 @@ auto Disc::serialize(serializer& s) -> void {
   s(io.index);
   s(io.soundMapEnable);
   s(io.sectorBufferReadRequest);
+  s(io.sectorBufferLoaded);
   s(io.sectorBufferWriteRequest);
 
   s(counter.sector);

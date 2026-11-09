@@ -1,5 +1,5 @@
 auto Disc::canReadDMA() -> bool {
-  return io.sectorBufferReadRequest && !fifo.data.empty();
+  return io.sectorBufferReadRequest && io.sectorBufferLoaded && !fifo.data.empty();
 }
 
 auto Disc::readDMA() -> u32 {
@@ -21,7 +21,7 @@ auto Disc::readByte(u32 address) -> u32 {
     data.bit(3) = fifo.parameter.empty();  //1 when empty
     data.bit(4) = !fifo.parameter.full();  //0 when full
     data.bit(5) = !fifo.response.empty();  //0 when empty
-    data.bit(6) = io.sectorBufferReadRequest && !fifo.data.empty();      //0 when empty
+    data.bit(6) = io.sectorBufferReadRequest && io.sectorBufferLoaded && !fifo.data.empty();      //0 when empty
     data.bit(7) = command.transfer.started; //command/parameter busy (0 = ready)
     return data;
   }
@@ -159,6 +159,7 @@ auto Disc::writeByte(u32 address, u32 value) -> void {
     io.soundMapEnable = data.bit(5);
     io.sectorBufferWriteRequest = data.bit(6);
     io.sectorBufferReadRequest = data.bit(7);
+    io.sectorBufferLoaded = data.bit(7);
     return;
   }
 

@@ -131,6 +131,7 @@ struct Disc : Memory::Interface {
     auto distance() const -> u32;
     auto updateSubQ() -> void;
     auto clockSector() -> void;
+    auto updateHeader(s32 target) -> void;
 
     struct LBA {
       s32 current;
@@ -157,6 +158,7 @@ struct Disc : Memory::Interface {
     } mode;
 
     n1 headerValid;
+    n2 headerLag;
     n1 standby;
     u32 seeking;
     u32 seekDelay;
@@ -302,6 +304,7 @@ struct Disc : Memory::Interface {
     n2 index;
     n1 soundMapEnable;
     n1 sectorBufferReadRequest;
+    n1 sectorBufferLoaded;
     n1 sectorBufferWriteRequest;
   } io;
 
