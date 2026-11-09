@@ -97,7 +97,7 @@ auto Disc::CDXA::decodeBlock(s16* output, u16 address) -> void {
       data |= drive->sector.data[address + 16 + word * 4 + 3] << 24;
 
       u32 nibble = is8bit ? (data >> block * 8 & 0xff) : (data >> block * 4 & 0x0f);
-      s16 sample = s16(nibble << 12) >> shift;
+      s16 sample = is8bit ? s16(nibble << 8) >> shift : s16(nibble << 12) >> shift;
 
       s32* previous = isStereo ? &previousSamples[(block & 1) * 2] : &previousSamples[0];
       s32 interpolated = s32(sample) + ((previous[0] * positive) + (previous[1] * negative) + 32) / 64;
